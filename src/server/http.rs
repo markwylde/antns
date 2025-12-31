@@ -54,21 +54,26 @@ async fn handle_request(
     // Extract domain from Host header
     let domain = host.split(':').next().unwrap_or(host);
 
-    // Check if this is a .ant or .autonomi domain
-    if !domain.ends_with(".ant") && !domain.ends_with(".autonomi") {
-        println!("  ✗ Not a .ant or .autonomi domain");
+    // Check if this is a .ant, .autonomi, or .antns.net domain
+    let lookup_domain = if domain.ends_with(".antns.net") {
+        // Normalize .antns.net to .ant for lookup
+        domain.strip_suffix(".antns.net").unwrap().to_string() + ".ant"
+    } else if domain.ends_with(".ant") || domain.ends_with(".autonomi") {
+        domain.to_string()
+    } else {
+        println!("  ✗ Not a .ant, .autonomi, or .antns.net domain");
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body(Full::new(Bytes::from(
-                "Only .ant and .autonomi domains are supported",
+                "Only .ant, .autonomi, and .antns.net domains are supported",
             )))
             .unwrap());
-    }
+    };
 
     // Check cache first
     let target = if state.cache_ttl.as_secs() > 0 {
         let cache = state.cache.lock().await;
-        if let Some(cached) = cache.get(domain) {
+        if let Some(cached) = cache.get(&lookup_domain) {
             let age = SystemTime::now()
                 .duration_since(cached.timestamp)
                 .unwrap_or(Duration::MAX);
@@ -78,21 +83,21 @@ async fn handle_request(
             } else {
                 println!("  Cache expired (age: {}s)", age.as_secs());
                 drop(cache);
-                match lookup_and_cache(&state, domain).await {
+                match lookup_and_cache(&state, &lookup_domain).await {
                     Ok(target) => target,
                     Err(resp) => return Ok(resp),
                 }
             }
         } else {
             drop(cache);
-            match lookup_and_cache(&state, domain).await {
+            match lookup_and_cache(&state, &lookup_domain).await {
                 Ok(target) => target,
                 Err(resp) => return Ok(resp),
             }
         }
     } else {
         // Caching disabled
-        match lookup_domain_no_cache(&state, domain).await {
+        match lookup_domain_no_cache(&state, &lookup_domain).await {
             Ok(target) => target,
             Err(resp) => return Ok(resp),
         }
