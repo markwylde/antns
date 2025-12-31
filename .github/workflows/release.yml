@@ -91,9 +91,20 @@ jobs:
         run: strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
 
       - name: Rename binary for upload
-        run: cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+        shell: bash
+        run: |
+          ASSET_NAME="${{ matrix.asset_name }}"
+          if [[ "$ASSET_NAME" == *.exe ]]; then
+            # Windows: insert version before .exe
+            FINAL_NAME="${ASSET_NAME%.exe}-${{ github.event.release.tag_name }}.exe"
+          else
+            # Linux/macOS: append version
+            FINAL_NAME="${ASSET_NAME}-${{ github.event.release.tag_name }}"
+          fi
+          cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} "$FINAL_NAME"
+          echo "FINAL_ASSET_NAME=$FINAL_NAME" >> $GITHUB_ENV
 
       - name: Upload Release Asset
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }} --clobber
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ env.FINAL_ASSET_NAME }} --clobber
