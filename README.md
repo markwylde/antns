@@ -2,6 +2,8 @@
 
 A decentralized domain name system for the Autonomi network that provides human-readable `.ant` domain names with cryptographic ownership verification.
 
+![ANT-DNS Protocol Explainer](screenshot.png)
+
 ## What is AntNS?
 
 AntNS solves the fundamental conflict in decentralized naming systems between **discoverability** (everyone can find your domain) and **ownership** (only you can update it).

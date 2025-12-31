@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANT-DNS Interactive Explainer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0f0f23;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: #00ff88;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .tagline {
+            color: #888;
+            font-size: 1.2em;
+        }
+
+        .explainer {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .explainer h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+
+        .key-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .key-point {
+            background: #0f0f23;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #00ff88;
+        }
+
+        .key-point strong {
+            color: #00ff88;
+        }
+
+        .main-area {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .controls-panel {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .controls-panel h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .domain-box {
+            background: #0f0f23;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #00ff88;
+        }
+
+        .domain-box .label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .domain-box .value {
+            color: #00ff88;
+            font-weight: 600;
+            font-size: 1.1em;
+            word-break: break-all;
+        }
+
+        .mono {
+            font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #888;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: #0f0f23;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00ff88;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-primary {
+            background: #00ff88;
+            color: #0f0f23;
+        }
+
+        .btn-success {
+            background: #0088ff;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ff0055;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #e0e0e0;
+        }
+
+        .visualization {
+            display: grid;
+            gap: 30px;
+        }
+
+        .section {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+        }
+
+        .section h2 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .register-entry {
+            background: #0f0f23;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border: 2px solid #333;
+            transition: all 0.3s;
+        }
+
+        .register-entry.owner-entry {
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+
+        .register-entry.valid-entry {
+            border-color: #0088ff;
+            box-shadow: 0 0 20px rgba(0, 136, 255, 0.1);
+        }
+
+        .register-entry.invalid-entry {
+            border-color: #ff0055;
+            opacity: 0.4;
+            position: relative;
+        }
+
+        .register-entry.invalid-entry::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #ff0055;
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .entry-number {
+            font-size: 1.2em;
+            font-weight: 700;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .badge-owner {
+            background: #00ff88;
+            color: #0f0f23;
+        }
+
+        .badge-valid {
+            background: #0088ff;
+            color: white;
+        }
+
+        .badge-invalid {
+            background: #ff0055;
+            color: white;
+        }
+
+        .entry-data {
+            display: grid;
+            gap: 10px;
+        }
+
+        .data-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .data-row .key {
+            color: #888;
+        }
+
+        .data-row .value {
+            color: #00ff88;
+            word-break: break-all;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .signature-row {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+        }
+
+        .signature-row .value {
+            color: #0088ff;
+        }
+
+        .invalid-entry .signature-row .value {
+            color: #ff0055;
+        }
+
+        .current-records {
+            display: grid;
+            gap: 12px;
+        }
+
+        .record-card {
+            background: linear-gradient(135deg, #1a4d2e 0%, #1a1a2e 100%);
+            border: 1px solid #00ff88;
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .record-type-badge {
+            background: #00ff88;
+            color: #0f0f23;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .record-source {
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        .record-details {
+            display: grid;
+            gap: 8px;
+        }
+
+        .record-field {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 10px;
+        }
+
+        .record-field .label {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .record-field .value {
+            color: #e0e0e0;
+            word-break: break-all;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #555;
+        }
+
+        .empty-state .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .register-entry {
+            animation: slideIn 0.3s ease;
+        }
+
+        .flow-arrow {
+            text-align: center;
+            color: #00ff88;
+            font-size: 2em;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 1200px) {
+            .main-area {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-panel {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐜 ANT-DNS Protocol Explorer</h1>
+            <p class="tagline">Watch how decentralized domains work with shared keys + cryptographic signatures</p>
+        </header>
+
+        <div class="explainer">
+            <h2>The Problem ANT-DNS Solves</h2>
+            <p style="margin-bottom: 15px;">Traditional decentralized naming has a conflict: <strong>either everyone can find your domain (shared key) OR only you can update it (unique key)</strong>. You can't have both... or can you?</p>
+            <div class="key-points">
+                <div class="key-point">
+                    <strong>🔑 Shared Register Key</strong><br>
+                    Everyone uses the same key, so <code>mydomain.ant</code> has the same address for all clients
+                </div>
+                <div class="key-point">
+                    <strong>✍️ Ed25519 Signatures</strong><br>
+                    Each entry must be signed by the domain owner's private key to be valid
+                </div>
+                <div class="key-point">
+                    <strong>🗑️ Spam Filtering</strong><br>
+                    Anyone can write to the register, but invalid signatures are ignored during lookup
+                </div>
+                <div class="key-point">
+                    <strong>📜 Complete History</strong><br>
+                    All entries (valid and spam) are preserved for auditability
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="controls-panel">
+                <h2>⚡ Controls</h2>
+
+                <button class="btn-primary" onclick="createDomain()">🚀 Create New Domain</button>
+                <button class="btn-secondary" onclick="resetDemo()">Reset Demo</button>
+
+                <div id="domain-info" style="display: none; margin-top: 25px;">
+                    <div class="domain-box">
+                        <div class="label">Domain Name</div>
+                        <div class="value" id="domain-name"></div>
+                    </div>
+
+                    <div class="domain-box">
+                        <div class="label">Owner Public Key</div>
+                        <div class="value mono" id="public-key" style="font-size: 0.75em;"></div>
+                    </div>
+
+                    <div style="margin-top: 25px;">
+                        <div class="form-group">
+                            <label>Record Type</label>
+                            <select id="record-type">
+                                <option value="ant">ANT (Autonomi Chunk)</option>
+                                <option value="text">TEXT</option>
+                                <option value="cname">CNAME</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Record Name</label>
+                            <input type="text" id="record-name" value="." placeholder="e.g., . or www">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Record Value</label>
+                            <input type="text" id="record-value" placeholder="Leave empty for random">
+                        </div>
+
+                        <button class="btn-success" onclick="addValidRecord()">✅ Add Valid Entry</button>
+                        <button class="btn-danger" onclick="addInvalidRecord()">❌ Add Spam Entry</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="visualization">
+                <div class="section">
+                    <h2>
+                        <span>📜</span>
+                        <span>Register History</span>
+                        <span style="margin-left: auto; font-size: 0.8em; color: #888;">(oldest to newest)</span>
+                    </h2>
+                    <div id="register-history">
+                        <div class="empty-state">
+                            <div class="icon">📭</div>
+                            <p>No domain created yet</p>
+                            <p style="font-size: 0.9em; margin-top: 10px;">Click "Create New Domain" to start</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-arrow">⬇️</div>
+
+                <div class="section">
+                    <h2>
+                        <span>✨</span>
+                        <span>Current Domain State</span>
+                        <span style="margin-left: auto; font-size: 0.8em; color: #888;">(after filtering spam)</span>
+                    </h2>
+                    <div id="current-state">
+                        <div class="empty-state">
+                            <div class="icon">🎯</div>
+                            <p>No valid records yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated crypto functions
+        function generateKeyPair() {
+            const privateKey = Array.from({length: 32}, () =>
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+            ).join('');
+            const publicKey = Array.from({length: 32}, () =>
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+            ).join('');
+            return { privateKey, publicKey };
+        }
+
+        function signData(privateKey, data) {
+            // Simulated signature - deterministic based on private key
+            let hash = 0;
+            for (let i = 0; i < data.length; i++) {
+                hash = ((hash << 5) - hash) + data.charCodeAt(i);
+                hash = hash & hash;
+            }
+            const combined = privateKey + hash.toString(16);
+            return combined.slice(0, 64).padEnd(64, '0');
+        }
+
+        function canonicalJSON(records) {
+            return JSON.stringify(records.map(r => ({
+                name: r.name,
+                type: r.type,
+                value: r.value
+            })));
+        }
+
+        // State
+        let domain = null;
+        let keyPair = null;
+        let registerHistory = [];
+        let entryCounter = 0;
+
+        function createDomain() {
+            const domainNames = ['example.ant', 'mysite.ant', 'awesome.ant', 'demo.ant', 'cool.ant'];
+            domain = domainNames[Math.floor(Math.random() * domainNames.length)];
+            keyPair = generateKeyPair();
+            registerHistory = [];
+            entryCounter = 0;
+
+            // Create owner document
+            registerHistory.push({
+                type: 'owner',
+                number: entryCounter++,
+                publicKey: keyPair.publicKey
+            });
+
+            document.getElementById('domain-info').style.display = 'block';
+            updateUI();
+        }
+
+        function addValidRecord() {
+            if (!domain) return;
+
+            const type = document.getElementById('record-type').value;
+            const name = document.getElementById('record-name').value || '.';
+            const value = document.getElementById('record-value').value || generateRandomHash();
+
+            const records = [{ type, name, value }];
+            const canonical = canonicalJSON(records);
+            const signature = signData(keyPair.privateKey, canonical);
+
+            registerHistory.push({
+                type: 'signed',
+                number: entryCounter++,
+                records: records,
+                signature: signature,
+                valid: true
+            });
+
+            document.getElementById('record-value').value = '';
+            updateUI();
+        }
+
+        function addInvalidRecord() {
+            if (!domain) return;
+
+            const type = document.getElementById('record-type').value;
+            const name = document.getElementById('record-name').value || '.';
+            const value = document.getElementById('record-value').value || generateRandomHash();
+
+            const records = [{ type, name, value }];
+            const invalidSignature = 'deadbeef' + Math.random().toString(16).slice(2).padEnd(56, '0');
+
+            registerHistory.push({
+                type: 'signed',
+                number: entryCounter++,
+                records: records,
+                signature: invalidSignature,
+                valid: false
+            });
+
+            document.getElementById('record-value').value = '';
+            updateUI();
+        }
+
+        function generateRandomHash() {
+            return Array.from({length: 32}, () =>
+                Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+            ).join('');
+        }
+
+        function updateUI() {
+            document.getElementById('domain-name').textContent = domain;
+            document.getElementById('public-key').textContent = keyPair.publicKey;
+
+            // Update register history
+            const historyDiv = document.getElementById('register-history');
+            if (registerHistory.length === 0) {
+                historyDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <p>No domain created yet</p>
+                    </div>
+                `;
+            } else {
+                historyDiv.innerHTML = registerHistory.map(entry => {
+                    if (entry.type === 'owner') {
+                        return `
+                            <div class="register-entry owner-entry">
+                                <div class="entry-header">
+                                    <span class="entry-number">Entry ${entry.number}</span>
+                                    <span class="badge badge-owner">OWNER DOCUMENT</span>
+                                </div>
+                                <div class="entry-data">
+                                    <div class="data-row">
+                                        <div class="key">publicKey:</div>
+                                        <div class="value">${entry.publicKey}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        const entryClass = entry.valid ? 'valid-entry' : 'invalid-entry';
+                        const badge = entry.valid ? 'badge-valid' : 'badge-invalid';
+                        const badgeText = entry.valid ? '✅ VALID SIGNATURE' : '❌ INVALID SIGNATURE';
+
+                        return `
+                            <div class="register-entry ${entryClass}">
+                                <div class="entry-header">
+                                    <span class="entry-number">Entry ${entry.number}</span>
+                                    <span class="badge ${badge}">${badgeText}</span>
+                                </div>
+                                <div class="entry-data">
+                                    ${entry.records.map(r => `
+                                        <div class="data-row">
+                                            <div class="key">type:</div>
+                                            <div class="value">${r.type}</div>
+                                        </div>
+                                        <div class="data-row">
+                                            <div class="key">name:</div>
+                                            <div class="value">${r.name}</div>
+                                        </div>
+                                        <div class="data-row">
+                                            <div class="key">value:</div>
+                                            <div class="value">${r.value}</div>
+                                        </div>
+                                    `).join('')}
+                                    <div class="signature-row">
+                                        <div class="data-row">
+                                            <div class="key">signature:</div>
+                                            <div class="value">${entry.signature}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }).join('');
+            }
+
+            // Update current state
+            const currentStateDiv = document.getElementById('current-state');
+            const validEntries = registerHistory.filter(e => e.type === 'signed' && e.valid);
+
+            if (validEntries.length === 0) {
+                currentStateDiv.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🎯</div>
+                        <p>No valid DNS records yet</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">Add a valid entry to see it here</p>
+                    </div>
+                `;
+            } else {
+                const allRecords = [];
+                validEntries.forEach(entry => {
+                    entry.records.forEach(record => {
+                        allRecords.push({
+                            ...record,
+                            fromEntry: entry.number
+                        });
+                    });
+                });
+
+                currentStateDiv.innerHTML = allRecords.map(r => `
+                    <div class="record-card">
+                        <div class="record-header">
+                            <span class="record-type-badge">${r.type.toUpperCase()}</span>
+                            <span class="record-source">from Entry ${r.fromEntry}</span>
+                        </div>
+                        <div class="record-details">
+                            <div class="record-field">
+                                <div class="label">Name:</div>
+                                <div class="value">${r.name}</div>
+                            </div>
+                            <div class="record-field">
+                                <div class="label">Value:</div>
+                                <div class="value">${r.value}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function resetDemo() {
+            domain = null;
+            keyPair = null;
+            registerHistory = [];
+            entryCounter = 0;
+            document.getElementById('domain-info').style.display = 'none';
+            updateUI();
+        }
+    </script>
+</body>
+</html>

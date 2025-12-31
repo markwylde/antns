@@ -80,7 +80,7 @@ async fn list_command(domain: String) -> Result<()> {
         Ok(records) => {
             if records.is_empty() {
                 println!("No records found for domain: {}", domain);
-                println!("\nUse 'antns records --name {} add [type] [name] [value]' to add records.", domain);
+                println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
             } else {
                 for (i, record) in records.iter().enumerate() {
                     println!("[{}] {} {} {}", i, record.record_type, record.name, record.value);

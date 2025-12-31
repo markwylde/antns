@@ -101,7 +101,7 @@ async fn register_command(domain: String) -> Result<()> {
     println!("Register address: {}", registration.register_address);
     println!("Total cost: {} AttoTokens", registration.total_cost);
     println!("\nPrivate key saved to local storage.");
-    println!("\nUse 'antns records --name {} add [type] [name] [value]' to add records.", domain);
+    println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
 
     Ok(())
 }
@@ -117,7 +117,7 @@ async fn lookup_command(domain: String) -> Result<()> {
         Ok(records) => {
             if records.is_empty() {
                 println!("Domain '{}' is registered but has no records.", domain);
-                println!("\nUse 'antns records --name {} add [type] [name] [value]' to add records.", domain);
+                println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
             } else {
                 println!("Records for domain '{}':\n", domain);
                 for (i, record) in records.iter().enumerate() {
