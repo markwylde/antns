@@ -27,6 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout autonomi dependency
+        run: |
+          cd ..
+          git clone https://github.com/maidsafe/autonomi.git
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -54,6 +58,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout autonomi dependency
+        run: |
+          cd ..
+          git clone https://github.com/maidsafe/autonomi.git
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo registry
@@ -79,6 +87,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout autonomi dependency
+        run: |
+          cd ..
+          git clone https://github.com/maidsafe/autonomi.git
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Cache cargo registry
