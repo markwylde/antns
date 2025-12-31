@@ -26,3 +26,6 @@ flamegraph.svg
 # Test coverage
 *.profraw
 *.profdata
+
+# Local cross-compilation config
+Cross.toml
