@@ -1,0 +1,28 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Debug/profiling
+perf.data
+perf.data.old
+flamegraph.svg
+
+# Documentation build
+/doc/
+
+# Test coverage
+*.profraw
+*.profdata
