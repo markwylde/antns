@@ -81,6 +81,14 @@ antns names list
 antns names lookup mydomain.ant
 ```
 
+### Start DNS/HTTP Server
+
+```bash
+antns server start
+```
+
+This starts both a DNS server (port 53) and HTTP server (port 80) that resolve `.ant` domains with caching support.
+
 ### Manage Domain Records
 
 ```bash
