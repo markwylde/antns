@@ -96,7 +96,4 @@ jobs:
       - name: Upload Release Asset
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload ${{ github.event.release.tag_name }} \
-            ${{ matrix.asset_name }} \
-            --clobber
+        run: gh release upload ${{ github.event.release.tag_name }} ${{ matrix.asset_name }} --clobber
