@@ -3,14 +3,14 @@
 
 //! Domain lookup and resolution operations
 
-use autonomi::Client;
+use crate::crypto::verify_records;
+use crate::register::get_register_address_for_domain;
+use crate::register::{DomainOwnerDocument, DomainRecordsDocument, DomainResolution};
+use anyhow::{Context, Result};
 use autonomi::data::DataAddress;
+use autonomi::Client;
 use ed25519_dalek::VerifyingKey;
 use xor_name::XorName;
-use anyhow::{Context, Result};
-use crate::crypto::verify_records;
-use crate::register::{DomainOwnerDocument, DomainRecordsDocument, DomainResolution};
-use crate::register::get_register_address_for_domain;
 
 /// Look up a domain and return its current target address
 ///
@@ -20,19 +20,19 @@ use crate::register::get_register_address_for_domain;
 ///
 /// # Returns
 /// Domain resolution with target address and owner public key
-pub async fn lookup_domain(
-    client: &Client,
-    domain: &str,
-) -> Result<DomainResolution> {
+pub async fn lookup_domain(client: &Client, domain: &str) -> Result<DomainResolution> {
     // Step 1: Get register address (deterministic from domain name)
-    let register_addr = get_register_address_for_domain(domain)
-        .context("Failed to derive register address")?;
+    let register_addr =
+        get_register_address_for_domain(domain).context("Failed to derive register address")?;
 
-    tracing::debug!("Looking up domain '{}' at register: {}", domain, register_addr);
+    tracing::debug!(
+        "Looking up domain '{}' at register: {}",
+        domain,
+        register_addr
+    );
 
     // Step 2: Fetch register history (all chunk addresses)
-    let mut history = client
-        .register_history(&register_addr);
+    let mut history = client.register_history(&register_addr);
 
     // Step 3: Download first entry (owner document)
     let owner_chunk_addr = history
@@ -42,22 +42,26 @@ pub async fn lookup_domain(
         .ok_or_else(|| anyhow::anyhow!("Register not found for domain: {}", domain))?;
 
     let owner_data_addr = DataAddress::new(XorName(owner_chunk_addr));
-    let owner_data = client.data_get_public(&owner_data_addr)
+    let owner_data = client
+        .data_get_public(&owner_data_addr)
         .await
         .context("Failed to download owner document")?;
 
-    let owner_doc: DomainOwnerDocument = serde_json::from_slice(&owner_data)
-        .context("Failed to parse owner document")?;
+    let owner_doc: DomainOwnerDocument =
+        serde_json::from_slice(&owner_data).context("Failed to parse owner document")?;
 
     tracing::debug!("Owner public key: {}", owner_doc.public_key);
 
     // Parse owner's Ed25519 public key
-    let owner_pubkey_bytes = hex::decode(&owner_doc.public_key)
-        .context("Invalid hex in owner public key")?;
+    let owner_pubkey_bytes =
+        hex::decode(&owner_doc.public_key).context("Invalid hex in owner public key")?;
     let owner_pubkey = VerifyingKey::from_bytes(
-        owner_pubkey_bytes.as_slice().try_into()
-            .context("Invalid owner public key length")?
-    ).context("Invalid Ed25519 public key")?;
+        owner_pubkey_bytes
+            .as_slice()
+            .try_into()
+            .context("Invalid owner public key length")?,
+    )
+    .context("Invalid Ed25519 public key")?;
 
     // Step 4: Process remaining entries (records), verify signatures
     let mut last_valid_target: Option<String> = None;
@@ -90,7 +94,9 @@ pub async fn lookup_domain(
         // Verify signature
         if verify_records(&records_doc.records, &records_doc.signature, &owner_pubkey) {
             // Valid signature - extract target
-            if let Some(record) = records_doc.records.iter()
+            if let Some(record) = records_doc
+                .records
+                .iter()
                 .find(|r| r.record_type.eq_ignore_ascii_case("ant") && r.name == ".")
             {
                 last_valid_target = Some(record.value.clone());
@@ -99,7 +105,10 @@ pub async fn lookup_domain(
             }
         } else {
             // Invalid signature - spam entry, ignore
-            tracing::debug!("Invalid signature on chunk {}, ignoring", hex::encode(chunk_addr));
+            tracing::debug!(
+                "Invalid signature on chunk {}, ignoring",
+                hex::encode(chunk_addr)
+            );
             invalid_count += 1;
         }
     }
@@ -131,14 +140,17 @@ pub async fn lookup_domain_records(
     use crate::register::DnsRecord;
 
     // Step 1: Get register address
-    let register_addr = get_register_address_for_domain(domain)
-        .context("Failed to derive register address")?;
+    let register_addr =
+        get_register_address_for_domain(domain).context("Failed to derive register address")?;
 
-    tracing::debug!("Looking up records for domain '{}' at register: {}", domain, register_addr);
+    tracing::debug!(
+        "Looking up records for domain '{}' at register: {}",
+        domain,
+        register_addr
+    );
 
     // Step 2: Fetch register history
-    let mut history = client
-        .register_history(&register_addr);
+    let mut history = client.register_history(&register_addr);
 
     // Step 3: Download first entry (owner document)
     let owner_chunk_addr = history
@@ -148,20 +160,24 @@ pub async fn lookup_domain_records(
         .ok_or_else(|| anyhow::anyhow!("Register not found for domain: {}", domain))?;
 
     let owner_data_addr = DataAddress::new(XorName(owner_chunk_addr));
-    let owner_data = client.data_get_public(&owner_data_addr)
+    let owner_data = client
+        .data_get_public(&owner_data_addr)
         .await
         .context("Failed to download owner document")?;
 
-    let owner_doc: DomainOwnerDocument = serde_json::from_slice(&owner_data)
-        .context("Failed to parse owner document")?;
+    let owner_doc: DomainOwnerDocument =
+        serde_json::from_slice(&owner_data).context("Failed to parse owner document")?;
 
     // Parse owner's Ed25519 public key
-    let owner_pubkey_bytes = hex::decode(&owner_doc.public_key)
-        .context("Invalid hex in owner public key")?;
+    let owner_pubkey_bytes =
+        hex::decode(&owner_doc.public_key).context("Invalid hex in owner public key")?;
     let owner_pubkey = VerifyingKey::from_bytes(
-        owner_pubkey_bytes.as_slice().try_into()
-            .context("Invalid owner public key length")?
-    ).context("Invalid Ed25519 public key")?;
+        owner_pubkey_bytes
+            .as_slice()
+            .try_into()
+            .context("Invalid owner public key length")?,
+    )
+    .context("Invalid Ed25519 public key")?;
 
     // Step 4: Process remaining entries, find latest valid records
     let mut last_valid_records: Option<Vec<DnsRecord>> = None;
@@ -191,7 +207,10 @@ pub async fn lookup_domain_records(
         if verify_records(&records_doc.records, &records_doc.signature, &owner_pubkey) {
             last_valid_records = Some(records_doc.records);
         } else {
-            tracing::debug!("Invalid signature on chunk {}, ignoring", hex::encode(chunk_addr));
+            tracing::debug!(
+                "Invalid signature on chunk {}, ignoring",
+                hex::encode(chunk_addr)
+            );
         }
     }
 
@@ -201,10 +220,7 @@ pub async fn lookup_domain_records(
 
 /// Quick lookup that only fetches the current register value
 /// (less thorough but faster - doesn't verify full history)
-pub async fn quick_lookup(
-    client: &Client,
-    domain: &str,
-) -> Result<String> {
+pub async fn quick_lookup(client: &Client, domain: &str) -> Result<String> {
     let register_addr = get_register_address_for_domain(domain)?;
 
     // Get current value (latest chunk address)
@@ -221,11 +237,13 @@ pub async fn quick_lookup(
         .context("Failed to download current records data")?;
 
     // Parse records
-    let records_doc: DomainRecordsDocument = serde_json::from_slice(&data_bytes)
-        .context("Failed to parse current records")?;
+    let records_doc: DomainRecordsDocument =
+        serde_json::from_slice(&data_bytes).context("Failed to parse current records")?;
 
     // Extract target (note: this doesn't verify signature!)
-    let target = records_doc.records.iter()
+    let target = records_doc
+        .records
+        .iter()
         .find(|r| r.record_type.eq_ignore_ascii_case("ant") && r.name == ".")
         .map(|r| r.value.clone())
         .ok_or_else(|| anyhow::anyhow!("No target record found"))?;

@@ -3,13 +3,13 @@
 
 //! Domain registration operations
 
-use autonomi::{Client, SecretKey};
-use autonomi::client::payment::PaymentOption;
-use anyhow::{Context, Result};
+use crate::constants::DNS_REGISTER_KEY_HEX;
 use crate::crypto::DomainKeypair;
 use crate::register::{DomainOwnerDocument, DomainRegistration};
 use crate::storage::chunks::upload_document_as_chunk;
-use crate::constants::DNS_REGISTER_KEY_HEX;
+use anyhow::{Context, Result};
+use autonomi::client::payment::PaymentOption;
+use autonomi::{Client, SecretKey};
 
 /// Register a new domain on the Autonomi network
 ///
@@ -37,13 +37,15 @@ pub async fn register_domain(
     };
 
     // Step 3: Upload owner document as public chunk
-    let (owner_cost, owner_chunk_addr) = upload_document_as_chunk(
-        client,
-        &owner_doc,
-        payment.clone(),
-    ).await.context("Failed to upload owner document")?;
+    let (owner_cost, owner_chunk_addr) =
+        upload_document_as_chunk(client, &owner_doc, payment.clone())
+            .await
+            .context("Failed to upload owner document")?;
 
-    tracing::debug!("Owner document uploaded to chunk: {}", hex::encode(owner_chunk_addr));
+    tracing::debug!(
+        "Owner document uploaded to chunk: {}",
+        hex::encode(owner_chunk_addr)
+    );
 
     // Step 4: Convert chunk address to RegisterValue (32 bytes)
     let owner_value = Client::register_value_from_bytes(&owner_chunk_addr)
@@ -81,8 +83,6 @@ pub async fn register_domain(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_domain_validation() {
         // Add domain name validation tests

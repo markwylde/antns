@@ -3,16 +3,15 @@
 
 //! Ed25519 signature operations for domain ownership verification
 
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use crate::register::DnsRecord;
 use anyhow::{Context, Result};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 
 /// Sign a list of DNS records with an Ed25519 private key
 /// Returns the signature as a hex string
 pub fn sign_records(records: &[DnsRecord], signing_key: &SigningKey) -> Result<String> {
     // Serialize records to canonical JSON (deterministic ordering)
-    let json = serde_json::to_string(records)
-        .context("Failed to serialize records")?;
+    let json = serde_json::to_string(records).context("Failed to serialize records")?;
 
     // Sign the JSON bytes
     let signature = signing_key.sign(json.as_bytes());

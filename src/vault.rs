@@ -3,10 +3,10 @@
 
 //! Vault backup and restore operations for domain keypairs
 
-use autonomi::Client;
-use autonomi::client::payment::PaymentOption;
-use autonomi::client::vault::{vault_derive_key, vault_content_type_from_app_name};
 use anyhow::{Context, Result};
+use autonomi::client::payment::PaymentOption;
+use autonomi::client::vault::{vault_content_type_from_app_name, vault_derive_key};
+use autonomi::Client;
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -42,9 +42,7 @@ pub async fn backup_keys(
     let mut keys_map = HashMap::new();
 
     // Read all domain-key-*.txt files
-    for entry in std::fs::read_dir(&keys_dir)
-        .context("Failed to read keys directory")?
-    {
+    for entry in std::fs::read_dir(&keys_dir).context("Failed to read keys directory")? {
         let entry = entry.context("Failed to read directory entry")?;
         let path = entry.path();
 
@@ -81,13 +79,13 @@ pub async fn backup_keys(
     };
 
     // Serialize to JSON
-    let backup_json = serde_json::to_string_pretty(&backup)
-        .context("Failed to serialize backup")?;
+    let backup_json =
+        serde_json::to_string_pretty(&backup).context("Failed to serialize backup")?;
     let backup_bytes = Bytes::from(backup_json);
 
     // Derive vault key from wallet private key
-    let vault_key = vault_derive_key(wallet_private_key)
-        .context("Failed to derive vault key from wallet")?;
+    let vault_key =
+        vault_derive_key(wallet_private_key).context("Failed to derive vault key from wallet")?;
 
     // Get content type for antns
     let content_type = vault_content_type_from_app_name(ANTNS_VAULT_CONTENT_TYPE);
@@ -107,15 +105,12 @@ pub async fn backup_keys(
 }
 
 /// Restore domain keypairs from the vault
-pub async fn restore_keys(
-    client: &Client,
-    wallet_private_key: &str,
-) -> Result<()> {
+pub async fn restore_keys(client: &Client, wallet_private_key: &str) -> Result<()> {
     println!("Fetching backup from vault...");
 
     // Derive vault key from wallet private key
-    let vault_key = vault_derive_key(wallet_private_key)
-        .context("Failed to derive vault key from wallet")?;
+    let vault_key =
+        vault_derive_key(wallet_private_key).context("Failed to derive vault key from wallet")?;
 
     // Get from vault
     let (backup_bytes, _content_type) = client
@@ -124,19 +119,18 @@ pub async fn restore_keys(
         .context("Failed to retrieve backup from vault. Have you created a backup yet?")?;
 
     // Deserialize backup
-    let backup_json = String::from_utf8(backup_bytes.to_vec())
-        .context("Backup data is not valid UTF-8")?;
+    let backup_json =
+        String::from_utf8(backup_bytes.to_vec()).context("Backup data is not valid UTF-8")?;
 
-    let backup: KeysBackup = serde_json::from_str(&backup_json)
-        .context("Failed to parse backup data")?;
+    let backup: KeysBackup =
+        serde_json::from_str(&backup_json).context("Failed to parse backup data")?;
 
     println!("Found backup from: {}", backup.created_at);
     println!("Restoring {} domain key(s)...", backup.keys.len());
 
     // Ensure keys directory exists
     let keys_dir = crate::storage::local::get_domain_keys_dir()?;
-    std::fs::create_dir_all(&keys_dir)
-        .context("Failed to create keys directory")?;
+    std::fs::create_dir_all(&keys_dir).context("Failed to create keys directory")?;
 
     // Restore each keypair
     for (domain, key_hex) in backup.keys.iter() {
@@ -155,7 +149,10 @@ pub async fn restore_keys(
         println!("  Restored: {}", domain);
     }
 
-    println!("\n✓ Successfully restored {} domain key(s)!", backup.keys.len());
+    println!(
+        "\n✓ Successfully restored {} domain key(s)!",
+        backup.keys.len()
+    );
     println!("\nYou can now manage these domains:");
     for domain in backup.keys.keys() {
         println!("  • {}", domain);

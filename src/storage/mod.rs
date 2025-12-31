@@ -6,5 +6,5 @@
 pub mod chunks;
 pub mod local;
 
-pub use chunks::{upload_document_as_chunk, download_document_from_chunk};
+pub use chunks::{download_document_from_chunk, upload_document_as_chunk};
 pub use local::{get_domain_keys_dir, list_local_domains};

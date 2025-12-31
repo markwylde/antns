@@ -3,8 +3,8 @@
 
 //! Domain keypair management and storage
 
-use ed25519_dalek::{SigningKey, VerifyingKey};
 use anyhow::{Context, Result};
+use ed25519_dalek::{SigningKey, VerifyingKey};
 use std::path::PathBuf;
 
 /// Domain keypair structure
@@ -29,8 +29,9 @@ impl DomainKeypair {
     /// Create from existing signing key bytes
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let signing_key = SigningKey::from_bytes(
-            bytes.try_into()
-                .context("Invalid key length, expected 32 bytes")?
+            bytes
+                .try_into()
+                .context("Invalid key length, expected 32 bytes")?,
         );
         let verifying_key = signing_key.verifying_key();
 
@@ -54,14 +55,12 @@ impl DomainKeypair {
 /// Save a domain keypair to local storage
 pub fn save_keypair(domain: &str, keypair: &DomainKeypair) -> Result<PathBuf> {
     let keys_dir = crate::storage::local::get_domain_keys_dir()?;
-    std::fs::create_dir_all(&keys_dir)
-        .context("Failed to create domain keys directory")?;
+    std::fs::create_dir_all(&keys_dir).context("Failed to create domain keys directory")?;
 
     // Save private key
     let key_file = keys_dir.join(format!("domain-key-{}.txt", domain));
     let key_hex = hex::encode(keypair.to_bytes());
-    std::fs::write(&key_file, key_hex)
-        .context("Failed to write private key file")?;
+    std::fs::write(&key_file, key_hex).context("Failed to write private key file")?;
 
     // Save metadata
     let meta_file = keys_dir.join(format!("domain-meta-{}.json", domain));
@@ -81,11 +80,9 @@ pub fn load_keypair(domain: &str) -> Result<DomainKeypair> {
     let keys_dir = crate::storage::local::get_domain_keys_dir()?;
     let key_file = keys_dir.join(format!("domain-key-{}.txt", domain));
 
-    let key_hex = std::fs::read_to_string(&key_file)
-        .context("Failed to read private key file")?;
+    let key_hex = std::fs::read_to_string(&key_file).context("Failed to read private key file")?;
 
-    let key_bytes = hex::decode(key_hex.trim())
-        .context("Invalid hex in private key file")?;
+    let key_bytes = hex::decode(key_hex.trim()).context("Invalid hex in private key file")?;
 
     DomainKeypair::from_bytes(&key_bytes)
 }

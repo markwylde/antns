@@ -8,8 +8,7 @@ use std::path::PathBuf;
 
 /// Get the directory where domain keys are stored
 pub fn get_domain_keys_dir() -> Result<PathBuf> {
-    let home = directories::BaseDirs::new()
-        .context("Failed to determine home directory")?;
+    let home = directories::BaseDirs::new().context("Failed to determine home directory")?;
 
     Ok(home
         .data_local_dir()

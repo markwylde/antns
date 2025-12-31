@@ -3,14 +3,14 @@
 
 //! Domain update operations
 
-use autonomi::{Client, SecretKey, AttoTokens};
-use autonomi::client::payment::PaymentOption;
-use ed25519_dalek::SigningKey;
-use anyhow::{Context, Result};
-use crate::crypto::sign_records;
-use crate::register::{DomainRecordsDocument, DnsRecord};
-use crate::storage::chunks::upload_document_as_chunk;
 use crate::constants::DNS_REGISTER_KEY_HEX;
+use crate::crypto::sign_records;
+use crate::register::{DnsRecord, DomainRecordsDocument};
+use crate::storage::chunks::upload_document_as_chunk;
+use anyhow::{Context, Result};
+use autonomi::client::payment::PaymentOption;
+use autonomi::{AttoTokens, Client, SecretKey};
+use ed25519_dalek::SigningKey;
 
 /// Update a domain's target address
 ///
@@ -40,22 +40,20 @@ pub async fn update_domain(
     }];
 
     // Step 2: Sign records with owner key
-    let signature = sign_records(&records, owner_key)
-        .context("Failed to sign records")?;
+    let signature = sign_records(&records, owner_key).context("Failed to sign records")?;
 
-    let records_doc = DomainRecordsDocument {
-        records,
-        signature,
-    };
+    let records_doc = DomainRecordsDocument { records, signature };
 
     // Step 3: Upload new records as chunk
-    let (chunk_cost, records_chunk_addr) = upload_document_as_chunk(
-        client,
-        &records_doc,
-        payment.clone(),
-    ).await.context("Failed to upload new records document")?;
+    let (chunk_cost, records_chunk_addr) =
+        upload_document_as_chunk(client, &records_doc, payment.clone())
+            .await
+            .context("Failed to upload new records document")?;
 
-    tracing::debug!("New records uploaded to chunk: {}", hex::encode(records_chunk_addr));
+    tracing::debug!(
+        "New records uploaded to chunk: {}",
+        hex::encode(records_chunk_addr)
+    );
 
     // Step 4: Append to register
     let records_value = Client::register_value_from_bytes(&records_chunk_addr)
@@ -94,23 +92,22 @@ pub async fn update_domain_records(
     owner_key: &SigningKey,
     payment: PaymentOption,
 ) -> Result<AttoTokens> {
-    tracing::info!("Updating domain '{}' with {} records", domain, records.len());
+    tracing::info!(
+        "Updating domain '{}' with {} records",
+        domain,
+        records.len()
+    );
 
     // Sign all records
-    let signature = sign_records(&records, owner_key)
-        .context("Failed to sign records")?;
+    let signature = sign_records(&records, owner_key).context("Failed to sign records")?;
 
-    let records_doc = DomainRecordsDocument {
-        records,
-        signature,
-    };
+    let records_doc = DomainRecordsDocument { records, signature };
 
     // Upload records document
-    let (chunk_cost, records_chunk_addr) = upload_document_as_chunk(
-        client,
-        &records_doc,
-        payment.clone(),
-    ).await.context("Failed to upload records document")?;
+    let (chunk_cost, records_chunk_addr) =
+        upload_document_as_chunk(client, &records_doc, payment.clone())
+            .await
+            .context("Failed to upload records document")?;
 
     // Update register
     let records_value = Client::register_value_from_bytes(&records_chunk_addr)?;
@@ -129,7 +126,8 @@ pub async fn update_domain_records(
         .await
         .context("Failed to update register")?;
 
-    let total_cost = chunk_cost.checked_add(update_cost)
+    let total_cost = chunk_cost
+        .checked_add(update_cost)
         .context("Cost overflow")?;
 
     Ok(total_cost)
@@ -178,7 +176,11 @@ pub async fn delete_domain_record(
 
     // Validate index
     if index >= current_records.len() {
-        anyhow::bail!("Record index {} out of bounds (total records: {})", index, current_records.len());
+        anyhow::bail!(
+            "Record index {} out of bounds (total records: {})",
+            index,
+            current_records.len()
+        );
     }
 
     // Remove record
@@ -208,7 +210,11 @@ pub async fn update_domain_record(
 
     // Validate index
     if index >= current_records.len() {
-        anyhow::bail!("Record index {} out of bounds (total records: {})", index, current_records.len());
+        anyhow::bail!(
+            "Record index {} out of bounds (total records: {})",
+            index,
+            current_records.len()
+        );
     }
 
     // Replace record

@@ -3,15 +3,14 @@
 
 //! DNS resolver server for .ant and .autonomi domains
 
-use hickory_server::ServerFuture;
+use anyhow::{Context, Result};
+use hickory_proto::op::{Header, ResponseCode};
+use hickory_proto::rr::rdata::A;
+use hickory_proto::rr::{Name, RData, Record};
 use hickory_server::authority::MessageResponseBuilder;
 use hickory_server::server::{Request, RequestHandler, ResponseHandler, ResponseInfo};
-use hickory_proto::op::{Header, MessageType, OpCode, ResponseCode};
-use hickory_proto::rr::{Name, RData, Record};
-use hickory_proto::rr::rdata::A;
+use hickory_server::ServerFuture;
 use std::net::Ipv4Addr;
-use std::sync::Arc;
-use anyhow::{Context, Result};
 
 /// DNS request handler for .ant and .autonomi domains
 #[derive(Clone)]
@@ -50,8 +49,13 @@ impl RequestHandler for AntDnsHandler {
             }
 
             header.set_response_code(ResponseCode::NoError);
-            let response = MessageResponseBuilder::from_message_request(request)
-                .build(header, records.iter(), &[], &[], &[]);
+            let response = MessageResponseBuilder::from_message_request(request).build(
+                header,
+                records.iter(),
+                &[],
+                &[],
+                &[],
+            );
 
             match response_handler.send_response(response).await {
                 Ok(info) => return info,
@@ -64,8 +68,8 @@ impl RequestHandler for AntDnsHandler {
             // Return NXDOMAIN for non-.ant domains
             println!("  → NXDOMAIN (not a .ant/.autonomi domain)");
             header.set_response_code(ResponseCode::NXDomain);
-            let response = MessageResponseBuilder::from_message_request(request)
-                .build_no_records(header);
+            let response =
+                MessageResponseBuilder::from_message_request(request).build_no_records(header);
 
             match response_handler.send_response(response).await {
                 Ok(info) => return info,
@@ -102,7 +106,9 @@ pub async fn run(port: u16) -> Result<()> {
 
     println!("✓ DNS server listening on {}\n", addr);
 
-    server.block_until_done().await
+    server
+        .block_until_done()
+        .await
         .context("DNS server error")?;
 
     Ok(())

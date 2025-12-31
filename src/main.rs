@@ -3,9 +3,8 @@
 
 //! AntNS CLI application
 
-use clap::{Parser, Subcommand};
 use anyhow::Result;
-use tracing_subscriber;
+use clap::{Parser, Subcommand};
 
 mod cli;
 

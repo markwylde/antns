@@ -3,8 +3,8 @@
 
 //! DNS resolver and HTTP proxy server commands
 
-use clap::Subcommand;
 use anyhow::Result;
+use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ServerCommands {
@@ -37,22 +37,24 @@ pub enum ServerCommands {
 
 pub async fn execute(command: ServerCommands) -> Result<()> {
     match command {
-        ServerCommands::Start { dns_port, proxy_port, upstream, ttl } => {
-            start_command(dns_port, proxy_port, upstream, ttl).await
-        }
-        ServerCommands::Setup { dns_port } => {
-            setup_command(dns_port).await
-        }
-        ServerCommands::Stop => {
-            stop_command().await
-        }
-        ServerCommands::Status => {
-            status_command().await
-        }
+        ServerCommands::Start {
+            dns_port,
+            proxy_port,
+            upstream,
+            ttl,
+        } => start_command(dns_port, proxy_port, upstream, ttl).await,
+        ServerCommands::Setup { dns_port } => setup_command(dns_port).await,
+        ServerCommands::Stop => stop_command().await,
+        ServerCommands::Status => status_command().await,
     }
 }
 
-async fn start_command(dns_port: u16, proxy_port: u16, upstream: String, ttl_minutes: u64) -> Result<()> {
+async fn start_command(
+    dns_port: u16,
+    proxy_port: u16,
+    upstream: String,
+    ttl_minutes: u64,
+) -> Result<()> {
     use anyhow::Context;
 
     println!("Starting AntNS servers...");
@@ -177,8 +179,5 @@ async fn status_command() -> Result<()> {
 fn check_port_in_use(port: u16) -> bool {
     use std::net::TcpListener;
 
-    match TcpListener::bind(("127.0.0.1", port)) {
-        Ok(_) => false, // Port is available
-        Err(_) => true, // Port is in use
-    }
+    TcpListener::bind(("127.0.0.1", port)).is_err()
 }

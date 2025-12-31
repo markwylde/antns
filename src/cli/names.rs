@@ -3,9 +3,9 @@
 
 //! Domain name management commands
 
-use clap::Subcommand;
 use anyhow::{Context, Result};
 use autonomi::Client;
+use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum NamesCommands {
@@ -43,24 +43,12 @@ pub enum NamesCommands {
 
 pub async fn execute(command: NamesCommands) -> Result<()> {
     match command {
-        NamesCommands::Register { domain } => {
-            register_command(domain).await
-        }
-        NamesCommands::Lookup { domain } => {
-            lookup_command(domain).await
-        }
-        NamesCommands::History { domain } => {
-            history_command(domain).await
-        }
-        NamesCommands::List => {
-            list_command().await
-        }
-        NamesCommands::Export { domain } => {
-            export_command(domain).await
-        }
-        NamesCommands::Import { domain, key } => {
-            import_command(domain, key).await
-        }
+        NamesCommands::Register { domain } => register_command(domain).await,
+        NamesCommands::Lookup { domain } => lookup_command(domain).await,
+        NamesCommands::History { domain } => history_command(domain).await,
+        NamesCommands::List => list_command().await,
+        NamesCommands::Export { domain } => export_command(domain).await,
+        NamesCommands::Import { domain, key } => import_command(domain, key).await,
     }
 }
 
@@ -73,8 +61,8 @@ async fn register_command(domain: String) -> Result<()> {
         .context("Failed to initialize Autonomi client")?;
 
     // Load wallet using the client's network
-    let wallet = antns::wallet::load_wallet_from_client(&client)
-        .context("Failed to load wallet")?;
+    let wallet =
+        antns::wallet::load_wallet_from_client(&client).context("Failed to load wallet")?;
 
     println!("Using wallet: {}", wallet.address());
 
@@ -91,17 +79,23 @@ async fn register_command(domain: String) -> Result<()> {
     let signing_key = registration.owner_key;
 
     // Save keypair locally
-    antns::crypto::save_keypair(&domain, &antns::crypto::DomainKeypair {
-        signing_key,
-        verifying_key,
-    })
+    antns::crypto::save_keypair(
+        &domain,
+        &antns::crypto::DomainKeypair {
+            signing_key,
+            verifying_key,
+        },
+    )
     .context("Failed to save keypair")?;
 
     println!("\n✓ Domain registered successfully!");
     println!("Register address: {}", registration.register_address);
     println!("Total cost: {} AttoTokens", registration.total_cost);
     println!("\nPrivate key saved to local storage.");
-    println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
+    println!(
+        "\nUse 'antns records add --name {} [type] [name] [value]' to add records.",
+        domain
+    );
 
     Ok(())
 }
@@ -117,18 +111,27 @@ async fn lookup_command(domain: String) -> Result<()> {
         Ok(records) => {
             if records.is_empty() {
                 println!("Domain '{}' is registered but has no records.", domain);
-                println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
+                println!(
+                    "\nUse 'antns records add --name {} [type] [name] [value]' to add records.",
+                    domain
+                );
             } else {
                 println!("Records for domain '{}':\n", domain);
                 for (i, record) in records.iter().enumerate() {
-                    println!("[{}] {} {} {}", i, record.record_type, record.name, record.value);
+                    println!(
+                        "[{}] {} {} {}",
+                        i, record.record_type, record.name, record.value
+                    );
                 }
             }
             Ok(())
         }
         Err(e) => {
             let err_msg = format!("{:#}", e);
-            if err_msg.contains("Timeout") || err_msg.contains("not found") || err_msg.contains("Register not found") {
+            if err_msg.contains("Timeout")
+                || err_msg.contains("not found")
+                || err_msg.contains("Register not found")
+            {
                 println!("✗ Domain not found: {}", domain);
                 println!("The domain may not be registered, or the network may be unreachable.");
                 Ok(()) // Don't error out, just inform the user
@@ -152,13 +155,25 @@ async fn history_command(domain: String) -> Result<()> {
 
     for (i, entry) in history.iter().enumerate() {
         match entry {
-            antns::register::HistoryEntry::Owner { public_key, chunk_address } => {
+            antns::register::HistoryEntry::Owner {
+                public_key,
+                chunk_address,
+            } => {
                 println!("Entry {} (Owner):", i + 1);
                 println!("  Public Key: {}", public_key);
                 println!("  Chunk: {}", chunk_address);
             }
-            antns::register::HistoryEntry::Records { chunk_address, records, signature: _, is_valid } => {
-                let status = if *is_valid { "✓ Valid" } else { "✗ Invalid" };
+            antns::register::HistoryEntry::Records {
+                chunk_address,
+                records,
+                signature: _,
+                is_valid,
+            } => {
+                let status = if *is_valid {
+                    "✓ Valid"
+                } else {
+                    "✗ Invalid"
+                };
                 println!("Entry {} ({}):", i + 1, status);
                 println!("  Chunk: {}", chunk_address);
 
@@ -190,8 +205,7 @@ async fn history_command(domain: String) -> Result<()> {
 async fn list_command() -> Result<()> {
     println!("Locally owned domains:\n");
 
-    let domains = antns::storage::list_local_domains()
-        .context("Failed to list local domains")?;
+    let domains = antns::storage::list_local_domains().context("Failed to list local domains")?;
 
     if domains.is_empty() {
         println!("No domains found.");
@@ -208,8 +222,7 @@ async fn list_command() -> Result<()> {
 async fn export_command(domain: String) -> Result<()> {
     println!("Exporting private key for domain: {}\n", domain);
 
-    let keypair = antns::crypto::load_keypair(&domain)
-        .context("Failed to load domain keypair")?;
+    let keypair = antns::crypto::load_keypair(&domain).context("Failed to load domain keypair")?;
 
     println!("PRIVATE KEY (keep this secret!):");
     println!("{}", hex::encode(keypair.to_bytes()));
@@ -225,14 +238,12 @@ async fn export_command(domain: String) -> Result<()> {
 async fn import_command(domain: String, key: String) -> Result<()> {
     println!("Importing private key for domain: {}", domain);
 
-    let key_bytes = hex::decode(&key)
-        .context("Invalid hex in private key")?;
+    let key_bytes = hex::decode(&key).context("Invalid hex in private key")?;
 
-    let keypair = antns::crypto::DomainKeypair::from_bytes(&key_bytes)
-        .context("Invalid private key")?;
+    let keypair =
+        antns::crypto::DomainKeypair::from_bytes(&key_bytes).context("Invalid private key")?;
 
-    antns::crypto::save_keypair(&domain, &keypair)
-        .context("Failed to save keypair")?;
+    antns::crypto::save_keypair(&domain, &keypair).context("Failed to save keypair")?;
 
     println!("\n✓ Private key imported successfully!");
     println!("Public Key: {}", keypair.public_key_hex());

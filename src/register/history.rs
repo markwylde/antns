@@ -3,14 +3,14 @@
 
 //! Domain history operations
 
-use autonomi::Client;
+use crate::crypto::verify_records;
+use crate::register::get_register_address_for_domain;
+use crate::register::{DomainOwnerDocument, DomainRecordsDocument, HistoryEntry};
+use anyhow::{Context, Result};
 use autonomi::chunk::ChunkAddress;
+use autonomi::Client;
 use ed25519_dalek::VerifyingKey;
 use xor_name::XorName;
-use anyhow::{Context, Result};
-use crate::crypto::verify_records;
-use crate::register::{DomainOwnerDocument, DomainRecordsDocument, HistoryEntry};
-use crate::register::get_register_address_for_domain;
 
 /// Get the full history of a domain including all entries and their validation status
 ///
@@ -20,19 +20,19 @@ use crate::register::get_register_address_for_domain;
 ///
 /// # Returns
 /// Vector of history entries with validation status
-pub async fn get_domain_history(
-    client: &Client,
-    domain: &str,
-) -> Result<Vec<HistoryEntry>> {
+pub async fn get_domain_history(client: &Client, domain: &str) -> Result<Vec<HistoryEntry>> {
     // Get register address
-    let register_addr = get_register_address_for_domain(domain)
-        .context("Failed to derive register address")?;
+    let register_addr =
+        get_register_address_for_domain(domain).context("Failed to derive register address")?;
 
-    tracing::debug!("Fetching history for domain '{}' at register: {}", domain, register_addr);
+    tracing::debug!(
+        "Fetching history for domain '{}' at register: {}",
+        domain,
+        register_addr
+    );
 
     // Fetch register history
-    let mut history = client
-        .register_history(&register_addr);
+    let mut history = client.register_history(&register_addr);
 
     let mut entries = Vec::new();
 
@@ -53,9 +53,7 @@ pub async fn get_domain_history(
 
     // Parse owner public key for verification
     let owner_pubkey_bytes = hex::decode(&owner_doc.public_key)?;
-    let owner_pubkey = VerifyingKey::from_bytes(
-        owner_pubkey_bytes.as_slice().try_into()?
-    )?;
+    let owner_pubkey = VerifyingKey::from_bytes(owner_pubkey_bytes.as_slice().try_into()?)?;
 
     entries.push(HistoryEntry::Owner {
         public_key: owner_doc.public_key.clone(),
@@ -72,11 +70,7 @@ pub async fn get_domain_history(
                 match serde_json::from_slice::<DomainRecordsDocument>(chunk_data.value.as_ref()) {
                     Ok(doc) => {
                         // Verify signature
-                        let is_valid = verify_records(
-                            &doc.records,
-                            &doc.signature,
-                            &owner_pubkey
-                        );
+                        let is_valid = verify_records(&doc.records, &doc.signature, &owner_pubkey);
                         (Some(doc.records), Some(doc.signature), is_valid)
                     }
                     Err(e) => {
@@ -124,7 +118,9 @@ pub fn calculate_history_stats(entries: &[HistoryEntry]) -> HistoryStats {
             HistoryEntry::Owner { .. } => {
                 stats.valid_entries += 1;
             }
-            HistoryEntry::Records { is_valid, records, .. } => {
+            HistoryEntry::Records {
+                is_valid, records, ..
+            } => {
                 if *is_valid {
                     stats.valid_entries += 1;
                 } else if records.is_some() {

@@ -20,9 +20,12 @@ pub use constants::*;
 pub use crypto::ed25519::{sign_records, verify_records};
 pub use register::{
     create::register_domain,
-    lookup::{lookup_domain, lookup_domain_records},
-    update::{update_domain, update_domain_records, add_domain_record, delete_domain_record, update_domain_record},
     history::get_domain_history,
+    lookup::{lookup_domain, lookup_domain_records},
+    update::{
+        add_domain_record, delete_domain_record, update_domain, update_domain_record,
+        update_domain_records,
+    },
 };
 pub use storage::list_local_domains;
 
