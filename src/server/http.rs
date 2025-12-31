@@ -3,20 +3,20 @@
 
 //! HTTP proxy server for .ant and .autonomi domains
 
+use anyhow::{Context, Result};
 use autonomi::Client;
-use hyper::{Request, Response, StatusCode};
+use bytes::Bytes;
+use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
+use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
-use http_body_util::Full;
-use bytes::Bytes;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime};
 use tokio::net::TcpListener;
 use tokio::sync::Mutex;
-use anyhow::{Context, Result};
-use std::sync::Arc;
-use std::collections::HashMap;
-use std::time::{SystemTime, Duration};
 
 /// Cached domain lookup result
 #[derive(Clone)]
@@ -38,12 +38,18 @@ async fn handle_request(
     state: Arc<ProxyState>,
     req: Request<Incoming>,
 ) -> Result<Response<Full<Bytes>>, hyper::Error> {
-    let host = req.headers()
+    let host = req
+        .headers()
         .get("host")
         .and_then(|h| h.to_str().ok())
         .unwrap_or("");
 
-    println!("\nHTTP request: {} {} {}", req.method(), host, req.uri().path());
+    println!(
+        "\nHTTP request: {} {} {}",
+        req.method(),
+        host,
+        req.uri().path()
+    );
 
     // Extract domain from Host header
     let domain = host.split(':').next().unwrap_or(host);
@@ -53,7 +59,9 @@ async fn handle_request(
         println!("  ✗ Not a .ant or .autonomi domain");
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
-            .body(Full::new(Bytes::from("Only .ant and .autonomi domains are supported")))
+            .body(Full::new(Bytes::from(
+                "Only .ant and .autonomi domains are supported",
+            )))
             .unwrap());
     }
 
@@ -61,7 +69,9 @@ async fn handle_request(
     let target = if state.cache_ttl.as_secs() > 0 {
         let cache = state.cache.lock().await;
         if let Some(cached) = cache.get(domain) {
-            let age = SystemTime::now().duration_since(cached.timestamp).unwrap_or(Duration::MAX);
+            let age = SystemTime::now()
+                .duration_since(cached.timestamp)
+                .unwrap_or(Duration::MAX);
             if age < state.cache_ttl {
                 println!("  ✓ Cache hit (age: {}s)", age.as_secs());
                 cached.target.clone()
@@ -91,7 +101,11 @@ async fn handle_request(
     // Build upstream URL by replacing $ADDRESS with the target
     let upstream_url = state.upstream_template.replace("$ADDRESS", &target);
     let path = req.uri().path();
-    let query = req.uri().query().map(|q| format!("?{}", q)).unwrap_or_default();
+    let query = req
+        .uri()
+        .query()
+        .map(|q| format!("?{}", q))
+        .unwrap_or_default();
     let full_upstream_url = format!("{}{}{}", upstream_url, path, query);
 
     println!("  Proxying to: {}", full_upstream_url);
@@ -103,7 +117,10 @@ async fn handle_request(
             tracing::error!("Invalid upstream URL: {}", e);
             return Ok(Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Full::new(Bytes::from(format!("Invalid upstream URL: {}", e))))
+                .body(Full::new(Bytes::from(format!(
+                    "Invalid upstream URL: {}",
+                    e
+                ))))
                 .unwrap());
         }
     };
@@ -111,8 +128,7 @@ async fn handle_request(
     // Create HTTP client
     use hyper_util::client::legacy::Client;
     use hyper_util::rt::TokioExecutor;
-    let client = Client::builder(TokioExecutor::new())
-        .build_http();
+    let client = Client::builder(TokioExecutor::new()).build_http();
 
     // Make request to upstream
     let mut upstream_req = Request::builder()
@@ -148,8 +164,7 @@ async fn handle_request(
             };
 
             // Build response
-            let mut response = Response::builder()
-                .status(status);
+            let mut response = Response::builder().status(status);
 
             // Copy headers from upstream response
             for (name, value) in headers.iter() {
@@ -170,14 +185,20 @@ async fn handle_request(
             println!("  ✗ Failed to proxy to upstream: {}", e);
             Ok(Response::builder()
                 .status(StatusCode::BAD_GATEWAY)
-                .body(Full::new(Bytes::from(format!("Failed to proxy to upstream: {}", e))))
+                .body(Full::new(Bytes::from(format!(
+                    "Failed to proxy to upstream: {}",
+                    e
+                ))))
                 .unwrap())
         }
     }
 }
 
 /// Lookup domain and cache the result
-async fn lookup_and_cache(state: &ProxyState, domain: &str) -> Result<String, Response<Full<Bytes>>> {
+async fn lookup_and_cache(
+    state: &ProxyState,
+    domain: &str,
+) -> Result<String, Response<Full<Bytes>>> {
     println!("  Looking up domain: {}", domain);
     match crate::lookup_domain(&state.client, domain).await {
         Ok(resolution) => {
@@ -186,10 +207,13 @@ async fn lookup_and_cache(state: &ProxyState, domain: &str) -> Result<String, Re
 
             // Store in cache
             let mut cache = state.cache.lock().await;
-            cache.insert(domain.to_string(), CachedLookup {
-                target: target.clone(),
-                timestamp: SystemTime::now(),
-            });
+            cache.insert(
+                domain.to_string(),
+                CachedLookup {
+                    target: target.clone(),
+                    timestamp: SystemTime::now(),
+                },
+            );
 
             Ok(target)
         }
@@ -197,14 +221,20 @@ async fn lookup_and_cache(state: &ProxyState, domain: &str) -> Result<String, Re
             println!("  ✗ Lookup failed: {}", e);
             Err(Response::builder()
                 .status(StatusCode::NOT_FOUND)
-                .body(Full::new(Bytes::from(format!("Domain not found: {}", domain))))
+                .body(Full::new(Bytes::from(format!(
+                    "Domain not found: {}",
+                    domain
+                ))))
                 .unwrap())
         }
     }
 }
 
 /// Lookup domain without caching
-async fn lookup_domain_no_cache(state: &ProxyState, domain: &str) -> Result<String, Response<Full<Bytes>>> {
+async fn lookup_domain_no_cache(
+    state: &ProxyState,
+    domain: &str,
+) -> Result<String, Response<Full<Bytes>>> {
     println!("  Looking up domain: {}", domain);
     match crate::lookup_domain(&state.client, domain).await {
         Ok(resolution) => {
@@ -215,7 +245,10 @@ async fn lookup_domain_no_cache(state: &ProxyState, domain: &str) -> Result<Stri
             println!("  ✗ Lookup failed: {}", e);
             Err(Response::builder()
                 .status(StatusCode::NOT_FOUND)
-                .body(Full::new(Bytes::from(format!("Domain not found: {}", domain))))
+                .body(Full::new(Bytes::from(format!(
+                    "Domain not found: {}",
+                    domain
+                ))))
                 .unwrap())
         }
     }
@@ -276,10 +309,7 @@ pub async fn run(port: u16, upstream_template: String, cache_ttl_minutes: u64) -
 
             let io = TokioIo::new(stream);
 
-            if let Err(e) = http1::Builder::new()
-                .serve_connection(io, service)
-                .await
-            {
+            if let Err(e) = http1::Builder::new().serve_connection(io, service).await {
                 tracing::error!("Connection error from {}: {}", remote_addr, e);
             }
         });

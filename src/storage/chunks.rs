@@ -3,13 +3,13 @@
 
 //! Chunk storage operations for uploading and downloading JSON documents
 
-use autonomi::{Client, AttoTokens};
+use anyhow::{Context, Result};
 use autonomi::client::payment::PaymentOption;
 use autonomi::data::DataAddress;
+use autonomi::{AttoTokens, Client};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use xor_name::XorName;
-use anyhow::{Context, Result};
 
 /// Upload a document as a public chunk and return its address
 pub async fn upload_document_as_chunk<T: Serialize>(
@@ -18,8 +18,7 @@ pub async fn upload_document_as_chunk<T: Serialize>(
     payment: PaymentOption,
 ) -> Result<(AttoTokens, [u8; 32])> {
     // Serialize to JSON
-    let json = serde_json::to_vec(document)
-        .context("Failed to serialize document to JSON")?;
+    let json = serde_json::to_vec(document).context("Failed to serialize document to JSON")?;
 
     // Upload as public data
     let (cost, addr) = client
@@ -48,8 +47,8 @@ pub async fn download_document_from_chunk<T: for<'de> Deserialize<'de>>(
         .context("Failed to download data from network")?;
 
     // Deserialize from JSON
-    let document = serde_json::from_slice(&data_bytes)
-        .context("Failed to deserialize data as JSON")?;
+    let document =
+        serde_json::from_slice(&data_bytes).context("Failed to deserialize data as JSON")?;
 
     Ok(document)
 }
@@ -71,10 +70,10 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_upload_and_download() {
-        let client = Client::init().await.unwrap();
+        let _client = Client::init().await.unwrap();
         // let wallet = get_test_wallet(); // TODO: Add wallet initialization
 
-        let doc = TestDocument {
+        let _doc = TestDocument {
             name: "test".to_string(),
             value: 42,
         };

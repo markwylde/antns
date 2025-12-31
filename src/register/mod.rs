@@ -4,13 +4,13 @@
 //! Register operations for domain management
 
 pub mod create;
+pub mod history;
 pub mod lookup;
 pub mod update;
-pub mod history;
 
+use crate::constants::DNS_REGISTER_KEY_HEX;
 use autonomi::register::RegisterAddress;
 use autonomi::{Client, SecretKey};
-use crate::constants::DNS_REGISTER_KEY_HEX;
 
 /// Get the register address for a given domain name
 /// Uses the shared DNS_REGISTER_KEY to ensure everyone derives the same address

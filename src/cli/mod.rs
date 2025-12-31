@@ -3,7 +3,7 @@
 
 //! CLI command implementations
 
+pub mod keys;
 pub mod names;
 pub mod records;
 pub mod server;
-pub mod keys;

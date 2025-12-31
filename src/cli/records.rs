@@ -3,9 +3,9 @@
 
 //! Domain records management commands
 
-use clap::Subcommand;
 use anyhow::{Context, Result};
 use autonomi::Client;
+use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum RecordsCommands {
@@ -53,18 +53,21 @@ pub enum RecordsCommands {
 
 pub async fn execute(command: RecordsCommands) -> Result<()> {
     match command {
-        RecordsCommands::List { name } => {
-            list_command(name).await
-        }
-        RecordsCommands::Add { name, record_type, record_name, value } => {
-            add_command(name, record_type, record_name, value).await
-        }
-        RecordsCommands::Delete { name, index } => {
-            delete_command(name, index).await
-        }
-        RecordsCommands::Update { name, index, record_type, record_name, value } => {
-            update_command(name, index, record_type, record_name, value).await
-        }
+        RecordsCommands::List { name } => list_command(name).await,
+        RecordsCommands::Add {
+            name,
+            record_type,
+            record_name,
+            value,
+        } => add_command(name, record_type, record_name, value).await,
+        RecordsCommands::Delete { name, index } => delete_command(name, index).await,
+        RecordsCommands::Update {
+            name,
+            index,
+            record_type,
+            record_name,
+            value,
+        } => update_command(name, index, record_type, record_name, value).await,
     }
 }
 
@@ -80,17 +83,26 @@ async fn list_command(domain: String) -> Result<()> {
         Ok(records) => {
             if records.is_empty() {
                 println!("No records found for domain: {}", domain);
-                println!("\nUse 'antns records add --name {} [type] [name] [value]' to add records.", domain);
+                println!(
+                    "\nUse 'antns records add --name {} [type] [name] [value]' to add records.",
+                    domain
+                );
             } else {
                 for (i, record) in records.iter().enumerate() {
-                    println!("[{}] {} {} {}", i, record.record_type, record.name, record.value);
+                    println!(
+                        "[{}] {} {} {}",
+                        i, record.record_type, record.name, record.value
+                    );
                 }
             }
             Ok(())
         }
         Err(e) => {
             let err_msg = format!("{:#}", e);
-            if err_msg.contains("Timeout") || err_msg.contains("not found") || err_msg.contains("Register not found") {
+            if err_msg.contains("Timeout")
+                || err_msg.contains("not found")
+                || err_msg.contains("Register not found")
+            {
                 println!("\n✗ Domain not found: {}", domain);
                 println!("The domain may not be registered, or the network may be unreachable.");
                 Ok(())
@@ -101,9 +113,17 @@ async fn list_command(domain: String) -> Result<()> {
     }
 }
 
-async fn add_command(domain: String, record_type: String, record_name: String, value: String) -> Result<()> {
+async fn add_command(
+    domain: String,
+    record_type: String,
+    record_name: String,
+    value: String,
+) -> Result<()> {
     println!("Adding record to domain: {}", domain);
-    println!("Type: {}, Name: {}, Value: {}", record_type, record_name, value);
+    println!(
+        "Type: {}, Name: {}, Value: {}",
+        record_type, record_name, value
+    );
 
     // Validate record type
     if record_type != "TEXT" && record_type != "ANT" {
@@ -119,8 +139,8 @@ async fn add_command(domain: String, record_type: String, record_name: String, v
         .context("Failed to initialize Autonomi client")?;
 
     // Load wallet using the client's network
-    let wallet = antns::wallet::load_wallet_from_client(&client)
-        .context("Failed to load wallet")?;
+    let wallet =
+        antns::wallet::load_wallet_from_client(&client).context("Failed to load wallet")?;
 
     println!("Using wallet: {}", wallet.address());
 
@@ -157,8 +177,8 @@ async fn delete_command(domain: String, index: usize) -> Result<()> {
         .context("Failed to initialize Autonomi client")?;
 
     // Load wallet using the client's network
-    let wallet = antns::wallet::load_wallet_from_client(&client)
-        .context("Failed to load wallet")?;
+    let wallet =
+        antns::wallet::load_wallet_from_client(&client).context("Failed to load wallet")?;
 
     println!("Using wallet: {}", wallet.address());
 
@@ -176,9 +196,18 @@ async fn delete_command(domain: String, index: usize) -> Result<()> {
     Ok(())
 }
 
-async fn update_command(domain: String, index: usize, record_type: String, record_name: String, value: String) -> Result<()> {
+async fn update_command(
+    domain: String,
+    index: usize,
+    record_type: String,
+    record_name: String,
+    value: String,
+) -> Result<()> {
     println!("Updating record {} for domain: {}", index, domain);
-    println!("New Type: {}, Name: {}, Value: {}", record_type, record_name, value);
+    println!(
+        "New Type: {}, Name: {}, Value: {}",
+        record_type, record_name, value
+    );
 
     // Validate record type
     if record_type != "TEXT" && record_type != "ANT" {
@@ -194,8 +223,8 @@ async fn update_command(domain: String, index: usize, record_type: String, recor
         .context("Failed to initialize Autonomi client")?;
 
     // Load wallet using the client's network
-    let wallet = antns::wallet::load_wallet_from_client(&client)
-        .context("Failed to load wallet")?;
+    let wallet =
+        antns::wallet::load_wallet_from_client(&client).context("Failed to load wallet")?;
 
     println!("Using wallet: {}", wallet.address());
 
@@ -210,9 +239,16 @@ async fn update_command(domain: String, index: usize, record_type: String, recor
     };
 
     // Update record
-    let cost = antns::update_domain_record(&client, &domain, index, record, &keypair.signing_key, payment)
-        .await
-        .context("Failed to update record")?;
+    let cost = antns::update_domain_record(
+        &client,
+        &domain,
+        index,
+        record,
+        &keypair.signing_key,
+        payment,
+    )
+    .await
+    .context("Failed to update record")?;
 
     println!("\n✓ Record updated successfully!");
     println!("Cost: {} AttoTokens", cost);

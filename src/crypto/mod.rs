@@ -7,4 +7,4 @@ pub mod ed25519;
 pub mod keypair;
 
 pub use ed25519::{sign_records, verify_records};
-pub use keypair::{DomainKeypair, save_keypair, load_keypair};
+pub use keypair::{load_keypair, save_keypair, DomainKeypair};

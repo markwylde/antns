@@ -6,15 +6,15 @@
 //! Reuses the wallet infrastructure from the `ant` CLI.
 //! Users manage wallets with `ant wallet` commands, and AntNS loads them automatically.
 
-use autonomi::Wallet;
 use anyhow::{Context, Result};
-use std::env;
-use std::path::PathBuf;
-use std::io::Read;
-use std::num::NonZeroU32;
-use std::sync::LazyLock;
+use autonomi::Wallet;
 use ring::aead::{BoundKey, Nonce, NonceSequence};
 use ring::error::Unspecified;
+use std::env;
+use std::io::Read;
+use std::num::NonZeroU32;
+use std::path::PathBuf;
+use std::sync::LazyLock;
 
 const SECRET_KEY_ENV: &str = "SECRET_KEY";
 const ENCRYPTED_PRIVATE_KEY_EXT: &str = ".encrypted";
@@ -94,7 +94,8 @@ pub fn load_wallet_with_private_key(client: &autonomi::Client) -> Result<(Wallet
                    ant wallet import 0x...\n\n\
                 Wallet directory: {:?}",
                 e,
-                get_wallet_dir_path().unwrap_or_else(|_| PathBuf::from("~/.local/share/autonomi/client/wallets"))
+                get_wallet_dir_path()
+                    .unwrap_or_else(|_| PathBuf::from("~/.local/share/autonomi/client/wallets"))
             )
         }
     }
@@ -117,8 +118,7 @@ fn get_wallet_dir_path() -> Result<PathBuf> {
 
 /// Load wallet and private key from ant CLI's wallet directory
 fn load_wallet_with_key_from_disk(network: &autonomi::Network) -> Result<(Wallet, String)> {
-    let wallet_dir = get_wallet_dir_path()
-        .context("Failed to get wallet directory path")?;
+    let wallet_dir = get_wallet_dir_path().context("Failed to get wallet directory path")?;
 
     if !wallet_dir.exists() {
         anyhow::bail!("Wallet directory does not exist: {:?}", wallet_dir);
@@ -187,8 +187,7 @@ fn select_wallet_from_list(wallet_files: &[PathBuf]) -> Result<PathBuf> {
 
     println!();
     print!("Select wallet by index: ");
-    std::io::Write::flush(&mut std::io::stdout())
-        .context("Failed to flush stdout")?;
+    std::io::Write::flush(&mut std::io::stdout()).context("Failed to flush stdout")?;
 
     // Read user input
     let mut input = String::new();
@@ -245,8 +244,7 @@ fn load_private_key_from_file(path: &PathBuf) -> Result<String> {
 
 /// Decrypt an encrypted private key using CHACHA20_POLY1305
 fn decrypt_private_key(encrypted_data: &str, password: &str) -> Result<String> {
-    let encrypted_data = hex::decode(encrypted_data)
-        .context("Encrypted data is invalid")?;
+    let encrypted_data = hex::decode(encrypted_data).context("Encrypted data is invalid")?;
 
     let salt: [u8; SALT_LENGTH] = encrypted_data[..SALT_LENGTH]
         .try_into()
