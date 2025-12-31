@@ -142,13 +142,6 @@ Domain-specific Ed25519 keypairs are stored as `domain-key-<domain-name>.txt` fi
 
 **Important:** Back up these directories or use `antns keys backup` to store domain keys on the Autonomi network.
 
-## Project Status
-
-- **Phase 1**: ✅ Core functionality implemented
-- **Phase 2-3**: ✅ Payment integration complete (ant CLI wallet support)
-- **Phase 4**: ✅ DNS/HTTP servers with caching implemented
-- **Phase 5**: ✅ Network vault backup/restore implemented
-
 ## Documentation
 
 - [RFC-ANT-DNS.md](RFC-ANT-DNS.md) - Formal protocol specification
